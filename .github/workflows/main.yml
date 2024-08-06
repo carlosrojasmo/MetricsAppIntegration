@@ -1,0 +1,44 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@v2
+
+      - name: Set up Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: '3.9'
+
+      - name: Install dependencies
+        run: |
+          python -m venv venv
+          source venv/bin/activate
+          pip install -r requirements.txt
+      - name: Test:Pytest
+        run: |
+          source venv/bin/activate
+          python -m pytest
+          
+      - name: Build Docker image
+        run: |
+          docker build -t metrics-app:latest .
+
+      - name: Run container and test
+        run: |
+          docker run -d -p 5000:5000 --name metrics-app-container metrics-app:latest
+          sleep 5
+          curl --fail http://localhost:5000/metrics || exit 1
+        continue-on-error: true
+
